@@ -1,0 +1,55 @@
+services:
+  moodle-db:
+    image: postgres:15
+    container_name: moodle-db
+    environment:
+      POSTGRES_DB: moodle_db
+      POSTGRES_USER: moodle_user
+      POSTGRES_PASSWORD: Moodle@Secure2024
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    networks:
+      - moodle-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U moodle_user -d moodle_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  moodle:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: moodle-app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      MOODLE_DB_HOST: moodle-db
+      MOODLE_DB_PORT: 5432
+      MOODLE_DB_NAME: moodle_db
+      MOODLE_DB_USER: moodle_user
+      MOODLE_DB_PASS: Moodle@Secure2024
+      MOODLE_WWWROOT: http://192.168.56.104
+      MOODLE_ADMIN_PASS: Admin@Infra2024
+      MOODLE_ADMIN_EMAIL: admin@infraestructura.edu
+      MOODLE_SITE_NAME: EVA - Infraestructura Tecnologica
+    volumes:
+      - moodledata:/var/moodledata
+    depends_on:
+      moodle-db:
+        condition: service_healthy
+    networks:
+      - moodle-network
+    restart: unless-stopped
+
+volumes:
+  postgresql_data:
+    driver: local
+  moodledata:
+    driver: local
+
+networks:
+  moodle-network:
+    driver: bridge

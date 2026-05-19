@@ -1,0 +1,9 @@
+# Files generados durante el proceso
+Esperando
+Moodle
+PostgreSQL
+Primera
+
+# Ambientes y secretos
+.env
+*.env
