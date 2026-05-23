@@ -44,6 +44,17 @@ services:
       - moodle-network
     restart: unless-stopped
 
+  terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile.terminal
+    container_name: moodle-terminal
+    ports:
+      - "7681:7681"
+    networks:
+      - moodle-network
+    restart: unless-stopped
+
 volumes:
   postgresql_data:
     driver: local

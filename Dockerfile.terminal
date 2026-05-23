@@ -1,0 +1,68 @@
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y \
+    curl wget vim nano htop net-tools iputils-ping \
+    postgresql-client openssh-client \
+    bash-completion tree jq unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install ttyd
+RUN curl -L https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64 \
+    -o /usr/local/bin/ttyd \
+    && chmod +x /usr/local/bin/ttyd
+
+# Create sandbox user (non-root)
+RUN useradd -m -s /bin/bash alumno \
+    && echo "alumno:Infra2024" | chpasswd
+
+# Welcome message
+RUN echo '\n\
+echo ""\n\
+echo "  ╔══════════════════════════════════════════════════╗"\n\
+echo "  ║  Terminal de Practica - Infraestructura EVA      ║"\n\
+echo "  ║  Curso: Infraestructura Tecnologica              ║"\n\
+echo "  ║  Usuario: alumno  |  Escribe '"'"'help-infra'"'"' para tips ║"\n\
+echo "  ╚══════════════════════════════════════════════════╝"\n\
+echo ""\n\
+' >> /home/alumno/.bashrc
+
+# Helpful alias cheat-sheet command
+RUN echo '\
+help-infra() {\n\
+  echo ""\n\
+  echo "=== Comandos utiles para practicar ==="\n\
+  echo ""\n\
+  echo "[ Sistema ]"\n\
+  echo "  uname -a          ver version del SO"\n\
+  echo "  df -h             espacio en disco"\n\
+  echo "  free -h           memoria RAM"\n\
+  echo "  ps aux            procesos activos"\n\
+  echo "  top               monitor en tiempo real"\n\
+  echo ""\n\
+  echo "[ Red ]"\n\
+  echo "  ip addr show      ver interfaces de red"\n\
+  echo "  ping -c3 8.8.8.8  prueba de conectividad"\n\
+  echo "  curl -I http://moodle-app  cabeceras HTTP de Moodle"\n\
+  echo ""\n\
+  echo "[ Base de datos (PostgreSQL) ]"\n\
+  echo "  psql -h moodle-db -U moodle_user -d moodle_db"\n\
+  echo "  (contrasena: Moodle@Secure2024)"\n\
+  echo ""\n\
+  echo "[ Archivos ]"\n\
+  echo "  ls -la            listar con detalles"\n\
+  echo "  cat archivo       ver contenido"\n\
+  echo "  grep texto arch   buscar texto"\n\
+  echo "  find / -name *.conf  buscar archivos"\n\
+  echo ""\n\
+}\n\
+export -f help-infra\n\
+' >> /home/alumno/.bashrc
+
+RUN chown alumno:alumno /home/alumno/.bashrc
+
+EXPOSE 7681
+
+USER alumno
+WORKDIR /home/alumno
+
+CMD ["ttyd", "-p", "7681", "-t", "fontSize=15", "-t", "theme={\"background\":\"#1e1e1e\",\"foreground\":\"#d4d4d4\"}", "bash"]
