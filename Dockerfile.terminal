@@ -1,40 +1,143 @@
 FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Unidad 1: herramientas de sistema y red
-# Unidad 2: Apache, Nginx, OpenSSL
-# Unidad 3: clientes PostgreSQL y MySQL
-# Unidad 5: iptables, ufw, ssh-keygen
+# ── Unidad 1: herramientas de sistema, red, procesos ──────────────────────
+# ── Unidad 2: Apache, Nginx, PHP, OpenSSL ─────────────────────────────────
+# ── Unidad 3: clientes PostgreSQL y MySQL ─────────────────────────────────
+# ── Unidad 4: Docker CLI, git ─────────────────────────────────────────────
+# ── Unidad 5: iptables, ufw, fail2ban, tcpdump, iftop ─────────────────────
 RUN apt-get update && apt-get install -y \
-    vim nano htop procps iproute2 net-tools iputils-ping \
-    bash-completion tree lsof curl wget rsync \
+    vim nano procps iproute2 net-tools iputils-ping \
+    bash-completion tree lsof curl wget rsync tar gzip \
+    htop sysstat psmisc mlocate \
+    iftop tcpdump cron \
     apache2 nginx openssl \
+    php8.1-cli php8.1-fpm \
     postgresql-client default-mysql-client \
-    iptables ufw openssh-client \
-    sudo ca-certificates gnupg \
+    iptables ufw fail2ban \
+    openssh-client sudo ca-certificates gnupg \
+    apparmor-utils \
+    && updatedb \
     && rm -rf /var/lib/apt/lists/*
 
-# Unidad 4: Docker CLI (usa el socket del host montado via compose)
+# ── Docker CLI + Compose plugin ───────────────────────────────────────────
 RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
         | gpg --dearmor -o /usr/share/keyrings/docker.gpg \
     && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker.gpg] \
         https://download.docker.com/linux/ubuntu jammy stable" \
         > /etc/apt/sources.list.d/docker.list \
-    && apt-get update && apt-get install -y docker-ce-cli \
+    && apt-get update && apt-get install -y docker-ce-cli docker-compose-plugin \
     && rm -rf /var/lib/apt/lists/*
 
-# ttyd
+# ── ttyd ──────────────────────────────────────────────────────────────────
 RUN curl -fsSL \
     https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64 \
     -o /usr/local/bin/ttyd && chmod +x /usr/local/bin/ttyd
 
-# Usuario sandbox con sudo sin contraseña
+# ── Wrapper: systemctl  →  service (para apache2, nginx, cron, fail2ban) ──
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'ACTION=$1; SVC=$2' \
+    'case "$ACTION" in' \
+    '  start|stop|restart|reload|status)' \
+    '    service "$SVC" "$ACTION" 2>/dev/null || echo "[nota] usa: sudo service $SVC $ACTION";;' \
+    '  enable|disable)' \
+    '    echo "[nota] En Ubuntu: sudo update-rc.d $SVC $ACTION (en el servidor real: systemctl $ACTION $SVC)";;' \
+    '  daemon-reload)' \
+    '    echo "[nota] daemon-reload ejecutado (no-op en contenedor)";;' \
+    '  list-units)' \
+    '    service --status-all 2>&1;;' \
+    '  *)' \
+    '    echo "[nota] systemctl no disponible en contenedor Ubuntu. Equivalente: sudo service $SVC $ACTION";;' \
+    'esac' \
+    > /usr/local/bin/systemctl \
+    && chmod +x /usr/local/bin/systemctl
+
+# ── Wrapper: journalctl  →  /var/log/ ─────────────────────────────────────
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'LOG=/var/log/syslog' \
+    'if [[ "$*" == *"-u apache2"* ]]; then LOG=/var/log/apache2/error.log; fi' \
+    'if [[ "$*" == *"-u nginx"* ]];   then LOG=/var/log/nginx/error.log;   fi' \
+    'if [[ "$*" == *"-f"* ]]; then' \
+    '  echo "[journalctl] Mostrando: tail -f $LOG"' \
+    '  tail -f "$LOG" 2>/dev/null || echo "(log vacio aun)"' \
+    'elif [[ "$*" == *"-b"* || "$*" == *"-p err"* ]]; then' \
+    '  echo "[journalctl] Mostrando ultimas 30 lineas de $LOG"' \
+    '  tail -30 "$LOG" 2>/dev/null || echo "(log vacio)"' \
+    'else' \
+    '  echo "[journalctl] Logs del sistema (tail -50 /var/log/syslog):"' \
+    '  tail -50 /var/log/syslog 2>/dev/null || echo "(syslog vacio)"' \
+    'fi' \
+    > /usr/local/bin/journalctl \
+    && chmod +x /usr/local/bin/journalctl
+
+# ── Wrapper: firewall-cmd  →  ufw ────────────────────────────────────────
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'echo "[firewall-cmd] En este contenedor Ubuntu usamos ufw en lugar de firewalld:"' \
+    'echo ""' \
+    'if [[ "$*" == *"--add-service=http"* ]];  then sudo ufw allow http;  fi' \
+    'if [[ "$*" == *"--add-service=https"* ]]; then sudo ufw allow https; fi' \
+    'if [[ "$*" == *"--add-service=ssh"* ]];   then sudo ufw allow ssh;   fi' \
+    'if [[ "$*" == *"--add-port="* ]]; then' \
+    '  PORT=$(echo "$*" | grep -oP "(?<=--add-port=)[0-9]+/[a-z]+" )' \
+    '  sudo ufw allow $PORT' \
+    'fi' \
+    'if [[ "$*" == *"--list-all"* || "$*" == *"--state"* || "$*" == *"--get-active"* ]]; then' \
+    '  sudo ufw status verbose' \
+    'fi' \
+    'if [[ "$*" == *"--reload"* ]]; then sudo ufw reload; fi' \
+    > /usr/local/bin/firewall-cmd \
+    && chmod +x /usr/local/bin/firewall-cmd
+
+# ── Wrapper: getenforce / setenforce  →  apparmor ────────────────────────
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'echo "[SELinux] Este servidor Ubuntu usa AppArmor en lugar de SELinux."' \
+    'echo "Equivalente AppArmor:"' \
+    'echo "  sudo aa-status          # ver estado (equivale a getenforce)"' \
+    'echo "  sudo aa-enforce <perfil> # modo enforcing"' \
+    'echo "  sudo aa-complain <perfil># modo permissive"' \
+    'echo ""' \
+    'sudo aa-status 2>/dev/null | head -5 || echo "(apparmor no activo en contenedor)"' \
+    > /usr/local/bin/getenforce \
+    && cp /usr/local/bin/getenforce /usr/local/bin/setenforce \
+    && chmod +x /usr/local/bin/getenforce /usr/local/bin/setenforce
+
+# ── Wrapper: hostnamectl ─────────────────────────────────────────────────
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'if [[ "$1" == "set-hostname" ]]; then' \
+    '  echo "$2" > /etc/hostname && hostname "$2"' \
+    '  echo "Hostname establecido: $2"' \
+    'else' \
+    '  echo "Static hostname:  $(hostname)"' \
+    '  echo "   Icon name:     computer-server"' \
+    '  echo "  Operating System: $(lsb_release -d 2>/dev/null | cut -f2)"' \
+    '  echo "            Kernel: $(uname -r)"' \
+    '  echo "      Architecture: $(uname -m)"' \
+    'fi' \
+    > /usr/local/bin/hostnamectl \
+    && chmod +x /usr/local/bin/hostnamectl
+
+# ── Wrapper: dnf  →  apt ─────────────────────────────────────────────────
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'echo "[dnf→apt] Este contenedor usa Ubuntu/apt. Traduciendo comando dnf a apt..."' \
+    'echo ""' \
+    'shift' \
+    'sudo apt-get "$@"' \
+    > /usr/local/bin/dnf \
+    && chmod +x /usr/local/bin/dnf
+
+# ── Usuario sandbox con sudo sin contraseña ───────────────────────────────
 RUN useradd -m -s /bin/bash alumno \
     && echo "alumno:Infra2024" | chpasswd \
     && echo "alumno ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/alumno \
     && chmod 440 /etc/sudoers.d/alumno
 
-# Bashrc con cheat-sheet por unidad
+# ── Bashrc con cheat-sheet por unidad ────────────────────────────────────
 COPY terminal_bashrc.sh /tmp/terminal_bashrc.sh
 RUN cat /tmp/terminal_bashrc.sh >> /home/alumno/.bashrc \
     && chown alumno:alumno /home/alumno/.bashrc
