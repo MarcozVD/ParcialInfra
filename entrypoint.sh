@@ -39,8 +39,10 @@ if [ ! -f "${CONFIG_FILE}" ]; then
     echo "==> Moodle instalado correctamente."
 fi
 
-# En reinicios, restaurar config.php al directorio de Moodle (no usar symlinks)
-if [ ! -f "${MOODLE_DIR}/config.php" ] && [ -f "${CONFIG_FILE}" ]; then
+# En reinicios, restaurar config.php como archivo real (nunca symlink)
+# -L detecta symlinks: si es symlink o no existe, reemplazar con copia real
+if { [ -L "${MOODLE_DIR}/config.php" ] || [ ! -f "${MOODLE_DIR}/config.php" ]; } && [ -f "${CONFIG_FILE}" ]; then
+    rm -f "${MOODLE_DIR}/config.php"
     cp "${CONFIG_FILE}" "${MOODLE_DIR}/config.php"
     chown www-data:www-data "${MOODLE_DIR}/config.php"
 fi
