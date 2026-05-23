@@ -51,5 +51,18 @@ echo "* * * * * www-data /usr/local/bin/php ${MOODLE_DIR}/admin/cli/cron.php >/d
 chmod 0644 /etc/cron.d/moodle
 service cron start
 
+# Actualizar wwwroot si cambió el env var (permite pasar de http a https sin reinstalar)
+if [ -f "${MOODLE_DIR}/config.php" ] && [ -n "${MOODLE_WWWROOT}" ]; then
+    sed -i "s|\(\\\$CFG->wwwroot\s*=\s*\)'[^']*'|\1'${MOODLE_WWWROOT}'|" "${MOODLE_DIR}/config.php"
+    [ -f "${CONFIG_FILE}" ] && \
+        sed -i "s|\(\\\$CFG->wwwroot\s*=\s*\)'[^']*'|\1'${MOODLE_WWWROOT}'|" "${CONFIG_FILE}"
+    # sslproxy: necesario cuando Nginx hace la terminación SSL
+    if [[ "${MOODLE_WWWROOT}" == https://* ]]; then
+        grep -q "sslproxy" "${MOODLE_DIR}/config.php" || \
+            sed -i "/\\\$CFG->wwwroot/a \\\$CFG->sslproxy = true;" "${MOODLE_DIR}/config.php"
+    fi
+    echo "==> wwwroot actualizado a: ${MOODLE_WWWROOT}"
+fi
+
 echo "==> Iniciando Apache..."
 exec "$@"

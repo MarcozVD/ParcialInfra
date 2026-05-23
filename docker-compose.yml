@@ -1,4 +1,6 @@
 services:
+
+  # ── Base de datos ────────────────────────────────────────────────────────
   moodle-db:
     image: postgres:15
     container_name: moodle-db
@@ -17,21 +19,19 @@ services:
       timeout: 5s
       retries: 10
 
+  # ── Aplicación Moodle (solo red interna — Nginx es el punto de entrada) ─
   moodle:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: moodle-app
-    ports:
-      - "80:80"
-      - "443:443"
     environment:
       MOODLE_DB_HOST: moodle-db
       MOODLE_DB_PORT: 5432
       MOODLE_DB_NAME: moodle_db
       MOODLE_DB_USER: moodle_user
       MOODLE_DB_PASS: Moodle@Secure2024
-      MOODLE_WWWROOT: http://192.168.56.104
+      MOODLE_WWWROOT: https://192.168.56.104
       MOODLE_ADMIN_PASS: Admin@Infra2024
       MOODLE_ADMIN_EMAIL: admin@infraestructura.edu
       MOODLE_SITE_NAME: EVA - Infraestructura Tecnologica
@@ -44,6 +44,7 @@ services:
       - moodle-network
     restart: unless-stopped
 
+  # ── Terminal web efímera ─────────────────────────────────────────────────
   terminal:
     build:
       context: .
@@ -56,6 +57,23 @@ services:
     networks:
       - moodle-network
     restart: always
+
+  # ── Nginx: reverse proxy + SSL (HTTPS) ──────────────────────────────────
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: moodle-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - moodle
+      - terminal
+    networks:
+      - moodle-network
+    restart: unless-stopped
 
 volumes:
   postgresql_data:
