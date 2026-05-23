@@ -79,8 +79,8 @@ case "$ACTION" in
         PKGS+=("$(translate_pkg "$arg")")
       fi
     done
-    echo "[dnf→apt] apt-get install ${OPTS[*]} ${PKGS[*]}"
-    apt-get install "${OPTS[@]}" "${PKGS[@]}"
+    echo "[dnf→apt] apt-get update && apt-get install ${OPTS[*]} ${PKGS[*]}"
+    apt-get update -qq && apt-get install "${OPTS[@]}" "${PKGS[@]}"
     ;;
 
   update|upgrade|up)
