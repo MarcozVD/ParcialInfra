@@ -8,7 +8,7 @@
 **Curso:** Infraestructura Tecnológica  
 **Equipo:** [Nombres del equipo]  
 **Fecha:** Mayo 2026  
-**Versión:** 1.0  
+**Versión:** 2.0  
 
 ---
 
@@ -42,7 +42,7 @@
 │         Implementación de Plataforma LMS con Docker              │
 │              EVA-IT: Entorno Virtual de Aprendizaje              │
 │                                                                   │
-│  Stack:  Moodle 5.1.4 · PostgreSQL 15 · Docker · ttyd            │
+│  Stack:  Moodle 5.1.4 · PostgreSQL 15 · Nginx · Docker · ttyd     │
 │  Servidor: Fedora Server 43 · VirtualBox · 192.168.56.104        │
 │                                                                   │
 │  [Nombres del equipo]                                            │
@@ -107,32 +107,43 @@ Diseñar, implementar y desplegar una plataforma LMS de alta disponibilidad util
                                │
               ┌────────────────┼────────────────┐
               │                │                │
-    ┌─────────▼──────┐  ┌──────▼───────┐  ┌────▼────────────┐
-    │  moodle-app    │  │  moodle-db   │  │ moodle-terminal │
-    │  Puerto: 80/443│  │  Puerto: 5432│  │  Puerto: 7681   │
-    │  Moodle 5.1.4  │  │ PostgreSQL 15│  │  ttyd + Ubuntu  │
-    │  PHP 8.2       │  │              │  │  Bash + tools   │
-    │  Apache 2.4    │  │  Vol: pgdata │  │                 │
-    │  Vol: moodle-  │  │              │  │  /docker.sock   │
-    │  data          │  │              │  │  (montado)      │
-    └────────────────┘  └──────────────┘  └─────────────────┘
-              │                │                │
-              └────────────────┼────────────────┘
-                               │
-                    ┌──────────▼──────────┐
-                    │   moodle-network    │
-                    │   (Docker bridge)   │
-                    └─────────────────────┘
+             ┌───────────────────────────────┐
+             │          nginx-proxy          │
+             │  nginx:alpine  ·  :80 / :443  │
+             │  HTTP → 301 → HTTPS           │
+             │  SSL: TLS 1.2/1.3  (OpenSSL)  │
+             │  / → moodle:80                │
+             │  /terminal/ → terminal:7681   │
+             └────┬──────────────────┬───────┘
+                  │ proxy_pass       │ WebSocket
+    ┌─────────────▼──┐  ┌────────────▼──┐  ┌──────────────────┐
+    │  moodle-app    │  │  moodle-db    │  │ moodle-terminal  │
+    │  Solo interno  │  │  Puerto: 5432 │  │  Puerto: 7681    │
+    │  Moodle 5.1.4  │  │ PostgreSQL 15 │  │  ttyd + Ubuntu   │
+    │  PHP 8.2       │  │               │  │  Bash + tools    │
+    │  Apache 2.4    │  │  Vol: pgdata  │  │                  │
+    │  Vol: moodle-  │  │               │  │  /docker.sock    │
+    │  data          │  │               │  │  (montado)       │
+    │  5 quizzes     │  │               │  │                  │
+    │  completion ✓  │  │               │  │                  │
+    └────────────────┘  └───────────────┘  └──────────────────┘
+              └─────────────────┼───────────────┘
+                     moodle-network (Docker bridge)
+
+    Host: healthcheck.sh (cron */5 * * * *)
+          Verifica y reinicia contenedores caídos
 ```
 
 ### 4.2 Componentes del Sistema
 
 | Componente | Tecnología | Puerto | Función |
 |---|---|---|---|
-| **LMS** | Moodle 5.1.4 + PHP 8.2 + Apache 2.4 | 80 / 443 | Plataforma de aprendizaje |
+| **Reverse proxy / SSL** | Nginx (nginx:alpine) | 80 / 443 | Gateway único, HTTP→HTTPS, WebSocket proxy |
+| **LMS** | Moodle 5.1.4 + PHP 8.2 + Apache 2.4 | 80 (interno) | Plataforma de aprendizaje |
 | **Base de datos** | PostgreSQL 15 | 5432 (interno) | Persistencia de datos del curso |
 | **Terminal web** | ttyd 1.7.7 + Ubuntu 22.04 | 7681 | Terminal interactiva para práctica |
 | **Orquestador** | Docker Compose | — | Gestión del ciclo de vida |
+| **Healthcheck** | Bash + cron (host) | — | Monitoreo y auto-recuperación cada 5 min |
 | **Host** | Fedora Server 43 | — | Sistema operativo del servidor |
 
 ### 4.3 Flujo de Datos
@@ -140,11 +151,19 @@ Diseñar, implementar y desplegar una plataforma LMS de alta disponibilidad util
 ```
 Alumno (Navegador)
        │
-       ├──► http://192.168.56.104:80  ──► [moodle-app]  ──► [moodle-db]
-       │         Moodle LMS                 Apache          PostgreSQL
-       │
-       └──► http://192.168.56.104:7681 ──► [moodle-terminal]
-                Terminal Web                 ttyd + bash
+       ├──► http://192.168.56.104:80   ──► [nginx-proxy] ──► 301 ──► https://
+       │                                                                │
+       └──► https://192.168.56.104:443 ──► [nginx-proxy]
+                                                  │
+                    ┌─────────────────────────────┤
+                    │                             │  WebSocket
+            location /                   location /terminal/
+                    │                             │
+             [moodle-app]               [moodle-terminal]
+              PHP 8.2 / Apache          ttyd + bash
+                    │
+              [moodle-db]
+              PostgreSQL 15
 ```
 
 ### 4.4 Persistencia y Volúmenes
@@ -171,16 +190,19 @@ moodledata       ──►  /var/moodledata             (archivos Moodle)
 | **Virtualización** | Oracle VirtualBox | 7.x | Entorno de VM |
 | **Contenedorización** | Docker Engine | 27.x | Runtime de contenedores |
 | **Orquestación** | Docker Compose | v2 plugin | Gestión multi-contenedor |
+| **Reverse proxy** | Nginx | 1.31 (alpine) | Gateway HTTPS, WebSocket proxy |
+| **Protocolo** | SSL/TLS | 1.2 / 1.3 | Cifrado extremo a extremo |
+| **Certificados** | OpenSSL | — | Certificado X.509 auto-firmado 365 días |
 | **LMS** | Moodle | 5.1.4 | Plataforma educativa |
 | **Lenguaje** | PHP | 8.2 | Backend Moodle |
-| **Web Server** | Apache HTTP Server | 2.4 | Servidor web Moodle |
+| **Web Server** | Apache HTTP Server | 2.4 | Servidor web Moodle (interno) |
 | **Base de datos** | PostgreSQL | 15 | Motor de BD relacional |
 | **Terminal web** | ttyd | 1.7.7 | Terminal vía WebSocket |
 | **OS Terminal** | Ubuntu | 22.04 LTS | Base del contenedor terminal |
 | **Control versiones** | Git + GitHub | — | Versionado del proyecto |
 | **Firewall** | UFW + iptables | — | Control de acceso de red |
 | **Anti-fuerza bruta** | fail2ban | — | Protección SSH/servicios |
-| **Certificados** | OpenSSL | — | SSL/TLS auto-firmado |
+| **Healthcheck** | Bash + cron | — | Monitoreo automático cada 5 minutos |
 
 ### 5.2 Herramientas del Contenedor Terminal
 
@@ -286,10 +308,16 @@ docker compose version
 
 ```
 /opt/moodle-lms/
-├── docker-compose.yml       # Orquestación de 3 servicios
+├── docker-compose.yml       # Orquestación de 4 servicios (+ nginx-proxy)
 ├── Dockerfile               # Imagen Moodle 5.1.4 + Apache + PHP 8.2
 ├── Dockerfile.terminal      # Imagen Ubuntu 22.04 + herramientas + ttyd
-├── entrypoint.sh            # Script de inicio: instala Moodle, configura Apache
+├── entrypoint.sh            # Inicio: instala Moodle, wwwroot, sslproxy
+├── nginx/
+│   ├── nginx.conf           # Reverse proxy, SSL, WebSocket proxy terminal
+│   └── certs/               # server.crt + server.key (auto-firmado)
+├── add_quizzes.php          # Crea 5 quizzes con 5 preguntas c/u (Moodle 5.x)
+├── enable_completion.php    # Activa completion tracking en todas actividades
+├── healthcheck.sh           # Cron: verifica y reinicia contenedores caídos
 ├── terminal_bashrc.sh       # Bash config con cheat-sheets por unidad
 ├── dnf_wrapper.sh           # Wrapper dnf → apt-get con traducción de paquetes
 └── fill_course.php          # Script para poblar el curso con contenido inicial
@@ -353,9 +381,10 @@ services:
       test: ["CMD-SHELL", "pg_isready -U moodle_user -d moodle_db"]
       interval: 10s  retries: 10
 
-  moodle:
+  moodle:                        # solo red interna, sin puertos al host
     build: { dockerfile: Dockerfile }
-    ports: ["80:80", "443:443"]
+    environment:
+      MOODLE_WWWROOT: https://192.168.56.104
     depends_on:
       moodle-db: { condition: service_healthy }
 
@@ -365,6 +394,15 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     restart: always   # reinicio automático = sesión efímera
+
+  nginx-proxy:                   # NUEVO: gateway HTTPS único
+    image: nginx:alpine
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on: [moodle, terminal]
+    restart: unless-stopped
 ```
 
 > 📷 **[CAPTURA 7]** Archivo `docker-compose.yml` completo en el editor o `cat docker-compose.yml`
@@ -377,26 +415,109 @@ El `entrypoint.sh` realiza automáticamente en el primer arranque:
 2. Genera `config.php` con las credenciales de BD
 3. Ejecuta el instalador CLI de Moodle (`admin/cli/install.php`)
 4. Configura el nombre del sitio, admin, email
-5. Ajusta permisos de directorios
+5. En **reinicios**, actualiza `wwwroot` desde la variable de entorno y agrega `sslproxy = true` si la URL es HTTPS
 6. Inicia Apache
 
 ```bash
 # Fragmento clave del entrypoint.sh
-php /var/www/html/public/admin/cli/install.php \
-  --dbtype=pgsql \
-  --dbhost=moodle-db \
-  --dbname=moodle_db \
-  --dbuser=moodle_user \
-  --dbpass=Moodle@Secure2024 \
-  --wwwroot=http://192.168.56.104 \
+php /var/www/html/admin/cli/install.php \
+  --dbtype=pgsql  --dbhost=moodle-db  --dbname=moodle_db \
+  --dbuser=moodle_user  --dbpass=Moodle@Secure2024 \
+  --wwwroot=https://192.168.56.104 \
   --dataroot=/var/moodledata \
-  --adminuser=admin \
-  --adminpass=Admin@Infra2024 \
+  --adminuser=admin  --adminpass=Admin@Infra2024 \
   --sitename="EVA - Infraestructura Tecnologica" \
   --non-interactive --agree-license
+
+# Ajuste SSL (necesario cuando Nginx termina el TLS)
+grep -q "sslproxy" /var/www/html/config.php || \
+    sed -i '/\$CFG->wwwroot/a \$CFG->sslproxy = true;' /var/www/html/config.php
 ```
 
 > 📷 **[CAPTURA 8]** Logs del contenedor `moodle-app` durante el primer arranque (`docker logs moodle-app`)
+
+### 7.7 Nginx — Reverse Proxy y SSL
+
+El fichero `nginx/nginx.conf` centraliza todo el tráfico entrante:
+
+```nginx
+server {
+    listen 80;
+    return 301 https://$host$request_uri;   # HTTP → HTTPS
+}
+server {
+    listen 443 ssl;
+    ssl_certificate     /etc/nginx/certs/server.crt;
+    ssl_certificate_key /etc/nginx/certs/server.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header X-Content-Type-Options nosniff always;
+
+    location /terminal/ {
+        proxy_pass         http://moodle-terminal:7681/;
+        proxy_set_header   Upgrade    $http_upgrade;
+        proxy_set_header   Connection "upgrade";   # WebSocket
+    }
+    location / {
+        proxy_pass         http://moodle:80;
+        proxy_set_header   X-Forwarded-Proto https;
+    }
+}
+```
+
+> 📷 **[CAPTURA 8b]** Output de `curl -sk -I https://192.168.56.104/` mostrando cabeceras de Nginx y código 200
+
+### 7.8 Quizzes por Unidad
+
+El script `add_quizzes.php` crea 5 quizzes (uno por unidad) con 5 preguntas de opción múltiple cada uno:
+
+```bash
+docker exec moodle-app php /tmp/add_quizzes.php
+# ✓ Quiz Unidad 1 creado (id=9, 5 preguntas)
+# ✓ Quiz Unidad 2 creado (id=10, 5 preguntas)
+# ...
+# Total: 5 quizzes creados en el curso.
+```
+
+Cada quiz tiene: 10 minutos de tiempo, 3 intentos permitidos, preguntas mezcladas, retroalimentación inmediata.
+
+> **Nota Moodle 5.x:** La columna `questionid` fue eliminada de `quiz_slots`. Las preguntas se vinculan mediante `question_bank_entries` → `question_versions` → `question_references (component='mod_quiz', questionarea='slot')`.
+
+### 7.9 Completion Tracking
+
+El script `enable_completion.php` activa el seguimiento de progreso en todo el curso:
+
+```bash
+docker exec moodle-app php /tmp/enable_completion.php
+# ✓ Completion habilitado en el curso 'Infraestructura Tecnologica'
+# ✓ Completion activado en 35 actividades/recursos
+# ✓ Caché del curso actualizado
+```
+
+| Tipo de actividad | Condición de completado |
+|---|---|
+| Páginas, Foros, URLs | `completion=1` — completado al abrirlo |
+| Quizzes, Tareas | `completion=2` — completado al recibir una nota |
+
+### 7.10 Healthcheck Automático
+
+El script `healthcheck.sh` se registra en el crontab del servidor host y se ejecuta cada 5 minutos:
+
+```bash
+# Instalar en el servidor
+*/5 * * * * /opt/moodle-lms/healthcheck.sh
+
+# Lógica del script
+check "moodle-app"      "http://localhost/"
+check "moodle-db"       ""
+check "moodle-terminal" "http://localhost:7681/"
+# Si un contenedor no responde → docker start <nombre>
+# Log en /var/log/eva_healthcheck.log (rotado a 500 líneas)
+```
+
+> 📷 **[CAPTURA 8c]** Output de `sudo crontab -l` y `tail /var/log/eva_healthcheck.log`
 
 ---
 
@@ -405,7 +526,7 @@ php /var/www/html/public/admin/cli/install.php \
 ### 8.1 Acceso al Panel de Administración
 
 ```
-URL:      http://192.168.56.104
+URL:      https://192.168.56.104    (HTTP redirige automáticamente a HTTPS)
 Admin:    admin
 Password: Admin@Infra2024
 ```
@@ -435,11 +556,13 @@ Password: Admin@Infra2024
 | Sección | Recursos | Actividades |
 |---|---|---|
 | General | Objetivos, Presentación, Avisos | — |
-| Unidad 1 — Servidores Linux | 3 páginas de contenido, Link terminal | 1 foro |
-| Unidad 2 — Servicios Web | 3 páginas de contenido, Link terminal | 1 foro |
-| Unidad 3 — Bases de Datos | 3 páginas de contenido, Link terminal | 1 foro |
-| Unidad 4 — Docker | 3 páginas de contenido, Link terminal | 1 foro |
-| Unidad 5 — Seguridad y Respaldo | 3 páginas de contenido, Link terminal | 1 foro |
+| Unidad 1 — Servidores Linux | 3 páginas, Link terminal | 1 foro · **1 quiz (5 preg.)** |
+| Unidad 2 — Servicios Web | 3 páginas, Link terminal | 1 foro · **1 quiz (5 preg.)** |
+| Unidad 3 — Bases de Datos | 3 páginas, Link terminal | 1 foro · **1 quiz (5 preg.)** |
+| Unidad 4 — Docker | 3 páginas, Link terminal | 1 foro · **1 quiz (5 preg.)** |
+| Unidad 5 — Seguridad y Respaldo | 3 páginas, Link terminal | 1 foro · **1 quiz (5 preg.)** |
+
+**Completion tracking habilitado:** páginas/foros/URLs se marcan al abrirlos; quizzes al recibir una nota. Los estudiantes ven una barra de progreso por unidad.
 
 > 📷 **[CAPTURA 12]** Vista del curso con todas las unidades desplegadas
 
@@ -447,7 +570,7 @@ Password: Admin@Infra2024
 
 ### 8.4 Terminal de Práctica Integrada
 
-Cada unidad incluye el recurso **"Terminal de Practica Linux"** que enlaza a `http://192.168.56.104:7681`. La terminal incluye:
+Cada unidad incluye el recurso **"Terminal de Practica Linux"** que enlaza a `https://192.168.56.104/terminal/` (acceso vía Nginx, protocolo WebSocket cifrado). La terminal incluye:
 
 - Cheat-sheet interactivo por unidad: `help-infra 1` hasta `help-infra 5`
 - Acceso directo a la BD real: `psql -h moodle-db -U moodle_user -d moodle_db`
@@ -455,7 +578,7 @@ Cada unidad incluye el recurso **"Terminal de Practica Linux"** que enlaza a `ht
 - Todas las herramientas de las 5 unidades preinstaladas
 - Sesión efímera: al cerrar el navegador el contenedor se reinicia automáticamente
 
-> 📷 **[CAPTURA 14]** Terminal web funcionando en el navegador (http://192.168.56.104:7681)
+> 📷 **[CAPTURA 14]** Terminal web funcionando en el navegador (https://192.168.56.104/terminal/)
 
 > 📷 **[CAPTURA 15]** Output del comando `help-infra 1` dentro de la terminal
 
@@ -467,12 +590,17 @@ Cada unidad incluye el recurso **"Terminal de Practica Linux"** que enlaza a `ht
 
 | Prueba | Comando / Método | Resultado Esperado | Estado |
 |---|---|---|---|
-| Moodle accesible | `curl -I http://192.168.56.104` | HTTP 200 | ✅ |
+| HTTP → HTTPS redirect | `curl -I http://192.168.56.104` | HTTP 301 → https:// | ✅ |
+| Moodle accesible por HTTPS | `curl -skI https://192.168.56.104` | HTTP 200 | ✅ |
+| Cabecera HSTS | `curl -skI https://...` | Strict-Transport-Security | ✅ |
 | PostgreSQL responde | `pg_isready -h moodle-db -U moodle_user` | accepting connections | ✅ |
-| Terminal web activa | `curl -I http://192.168.56.104:7681` | HTTP 200 | ✅ |
-| Login admin | Navegador → /login | Ingresa correctamente | ✅ |
+| Terminal via Nginx | `curl -I https://192.168.56.104/terminal/` | HTTP 200 (proxy) | ✅ |
+| Login admin (HTTPS) | Navegador → /login | Ingresa correctamente | ✅ |
 | Login docente | Navegador → /login | Ingresa correctamente | ✅ |
 | Login estudiante | Navegador → /login | Ingresa correctamente | ✅ |
+| Quiz Unidad 1 | Estudiante accede y responde | Obtiene nota, marca completado | ✅ |
+| Barra de progreso | Vista del curso con estudiante | Se actualizan los checks | ✅ |
+| Healthcheck | `tail /var/log/eva_healthcheck.log` | Logs con ✓ cada 5 min | ✅ |
 
 ### 9.2 Pruebas Funcionales del Curso
 
@@ -481,7 +609,9 @@ Cada unidad incluye el recurso **"Terminal de Practica Linux"** que enlaza a `ht
 | Ver unidades | El estudiante puede ver las 5 unidades | ✅ |
 | Abrir páginas | Las páginas de contenido muestran información técnica | ✅ |
 | Participar en foro | El estudiante puede crear hilos en los foros | ✅ |
-| Abrir terminal | El link "Terminal de Práctica" abre ttyd | ✅ |
+| Resolver quiz | El estudiante responde el quiz y obtiene una nota | ✅ |
+| Completion tracking | Barra de progreso se actualiza al completar actividades | ✅ |
+| Abrir terminal | El link "Terminal de Práctica" abre ttyd vía /terminal/ | ✅ |
 | Ejecutar comandos | `ls`, `ps aux`, `df -h`, `help-infra 1` funcionan | ✅ |
 | Conectar a BD | `psql -h moodle-db -U moodle_user -d moodle_db` conecta | ✅ |
 | Docker desde terminal | `docker ps` muestra contenedores del EVA | ✅ |
@@ -558,12 +688,13 @@ ss -tulnp | grep -E '80|443|7681|5432'
 
 | Puerto | Servicio | Exposición | Justificación |
 |---|---|---|---|
-| 80 | Moodle HTTP | Pública | Acceso al LMS |
-| 443 | Moodle HTTPS | Pública | Acceso cifrado |
-| 7681 | ttyd terminal | Pública (red local) | Acceso a terminal de práctica |
+| 80 | Nginx HTTP | Pública | Solo redirige → 301 → HTTPS |
+| 443 | Nginx HTTPS (TLS) | Pública | Gateway único cifrado al LMS y terminal |
+| 7681 | ttyd terminal | Pública (red local) | Acceso directo a terminal (también via /terminal/) |
+| 80 (interno) | Apache/Moodle | **Solo interna** | Solo accesible desde Nginx dentro de moodle-network |
 | 5432 | PostgreSQL | **Solo interna** | Solo accesible dentro de la red Docker |
 
-> ⚠️ **Nota:** El puerto 5432 de PostgreSQL **NO** está mapeado al host. Solo los contenedores dentro de `moodle-network` pueden acceder a la BD. Esto es una medida de seguridad crítica.
+> ⚠️ **Nota de seguridad:** Apache/Moodle **no tiene puertos mapeados al host**. Todo el tráfico externo pasa obligatoriamente por Nginx, que aplica TLS, cabeceras de seguridad (HSTS, X-Frame-Options, X-Content-Type-Options) y controla el routing.
 
 ### 11.2 Firewall (UFW en el host)
 
@@ -606,18 +737,32 @@ Todas las contraseñas del sistema cumplen criterios mínimos de seguridad:
 
 ### 11.5 Certificado SSL/TLS
 
+El certificado se genera una única vez en el host y se monta en el contenedor Nginx como volumen de solo lectura:
+
 ```bash
-# Generar certificado auto-firmado para el servidor
+# Generar certificado auto-firmado (en el host, antes del primer compose up)
+mkdir -p nginx/certs
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout /etc/ssl/private/moodle.key \
-  -out /etc/ssl/certs/moodle.crt \
+  -keyout nginx/certs/server.key \
+  -out nginx/certs/server.crt \
   -subj "/CN=192.168.56.104/O=EVA-IT/C=CO"
 
-# Verificar certificado
-openssl x509 -in /etc/ssl/certs/moodle.crt -text -noout | head -15
+# Nginx lo monta como:
+# ./nginx/certs:/etc/nginx/certs:ro   (solo lectura dentro del contenedor)
+
+# Verificar desde el host
+curl -sk https://192.168.56.104 -o /dev/null -w "%{http_code}\n"
+# 200
 ```
 
-> 📷 **[CAPTURA 30]** Acceso a `https://192.168.56.104` mostrando el candado (aunque sea auto-firmado)
+Nginx aplica cabeceras de seguridad HTTP en todas las respuestas HTTPS:
+```
+Strict-Transport-Security: max-age=31536000
+X-Frame-Options: SAMEORIGIN
+X-Content-Type-Options: nosniff
+```
+
+> 📷 **[CAPTURA 30]** Acceso a `https://192.168.56.104` mostrando el candado y las cabeceras de seguridad
 
 ### 11.6 Hardening de SSH
 
@@ -784,18 +929,22 @@ docker exec moodle-app php /var/www/html/public/admin/cli/upgrade.php --non-inte
 
 | Requisito | Estado | Evidencia |
 |---|---|---|
-| Plataforma LMS funcional | ✅ | Moodle 5.1.4 accesible en :80 |
+| Plataforma LMS funcional | ✅ | Moodle 5.1.4 en https://192.168.56.104 |
 | Usuario administrador | ✅ | admin / Admin@Infra2024 |
 | Al menos 1 docente | ✅ | docente01 |
 | Al menos 2 estudiantes | ✅ | estudiante01, estudiante02, estudiante03 |
 | Curso con unidades | ✅ | 5 unidades + General |
-| Contenido en cada unidad | ✅ | 3 páginas + 1 foro por unidad |
+| Contenido en cada unidad | ✅ | 3 páginas + 1 foro + **1 quiz** por unidad |
 | Base de datos funcionando | ✅ | PostgreSQL 15 con healthcheck |
-| Despliegue con Docker | ✅ | 3 contenedores orquestados |
+| Despliegue con Docker | ✅ | **4 contenedores** orquestados |
 | Repositorio en GitHub | ✅ | github.com/MarcozVD/ParcialInfra |
-| Elemento diferenciador | ✅ | Terminal Linux integrada (ttyd) |
-| Seguridad básica | ✅ | UFW, fail2ban, contraseñas seguras |
+| Elemento diferenciador | ✅ | Terminal Linux integrada (ttyd) vía Nginx |
+| HTTPS / SSL | ✅ | Nginx + TLS 1.2/1.3 + HSTS |
+| Evaluación de estudiantes | ✅ | 5 quizzes × 5 preguntas con retroalimentación |
+| Seguimiento de progreso | ✅ | Completion tracking en 35 actividades |
+| Seguridad básica | ✅ | UFW, fail2ban, contraseñas seguras, HTTP→HTTPS |
 | Plan de respaldo | ✅ | pg_dump + cron automatizado |
+| Alta disponibilidad | ✅ | healthcheck.sh: auto-recuperación cada 5 min |
 
 ---
 
@@ -803,15 +952,19 @@ docker exec moodle-app php /var/www/html/public/admin/cli/upgrade.php --non-inte
 
 1. **Docker como base del despliegue** demostró ser la elección correcta: el entorno pudo ser recreado desde cero en menos de 5 minutos ejecutando un único comando (`docker compose up -d --build`), eliminando el problema de "funciona en mi máquina" y garantizando reproducibilidad total.
 
-2. **La separación de responsabilidades** entre contenedores (aplicación, base de datos, terminal) no solo es una buena práctica de arquitectura, sino que tiene impacto directo en seguridad: PostgreSQL no está expuesto externamente, y la terminal está completamente aislada del contenedor Moodle.
+2. **La arquitectura de 4 contenedores con Nginx como gateway único** eleva la seguridad sustancialmente respecto a la exposición directa de Apache: todo el tráfico externo pasa obligatoriamente por Nginx, que aplica TLS, redirige HTTP a HTTPS, inyecta cabeceras de seguridad y controla el routing hacia los servicios internos. Apache/Moodle queda completamente invisible al exterior.
 
-3. **La terminal interactiva (ttyd) es el elemento diferenciador** de esta plataforma. Ninguna solución SaaS ni instalación tradicional de Moodle ofrece nativamente un entorno de práctica CLI integrado. Esta característica convierte el EVA-IT de una plataforma de contenido pasivo a un entorno de aprendizaje activo donde el alumno puede ejecutar los comandos del curso sin salir del navegador.
+3. **La separación de responsabilidades** entre contenedores (proxy, aplicación, base de datos, terminal) tiene impacto directo en seguridad: PostgreSQL no está expuesto externamente, Moodle no maneja el TLS, y la terminal está completamente aislada del contenedor Moodle.
 
-4. **El diseño de sesiones efímeras** (`--once` + `restart: always`) resuelve elegantemente el problema de aislamiento entre sesiones de práctica: sin importar qué haga un alumno en la terminal, al cerrar el navegador el entorno se reinicia completamente, garantizando que el siguiente usuario siempre inicia desde un estado conocido.
+4. **La terminal interactiva (ttyd) es el elemento diferenciador** de esta plataforma. Ninguna solución SaaS ni instalación tradicional de Moodle ofrece nativamente un entorno de práctica CLI integrado. Esta característica convierte el EVA-IT de una plataforma de contenido pasivo a un entorno de aprendizaje activo donde el alumno puede ejecutar los comandos del curso sin salir del navegador.
 
-5. **Los wrappers de comandos Fedora → Ubuntu** demuestran la importancia del pensamiento en la experiencia del usuario (UX) en infraestructura: el alumno practica los comandos tal como los aprendió en clase (dnf, systemctl, firewall-cmd), aunque el entorno subyacente use una distribución diferente.
+5. **Los quizzes por unidad y el completion tracking** cierran el ciclo de aprendizaje: el alumno estudia el contenido, practica en la terminal y se evalúa — todo dentro de la misma plataforma. La barra de progreso motiva al estudiante a completar sistemáticamente cada unidad antes de avanzar.
 
-6. **PostgreSQL 15 como motor de BD** demostró estabilidad total durante las pruebas. El healthcheck de Docker garantiza que Moodle nunca intente conectarse antes de que la BD esté lista, eliminando errores de arranque en frío.
+6. **El healthcheck automatizado** (`healthcheck.sh`) proporciona auto-recuperación sin intervención humana: si cualquier contenedor falla, es relanzado en el siguiente ciclo de 5 minutos y el incidente queda registrado en el log. Esto garantiza alta disponibilidad en un entorno académico donde el uptime durante el semestre es crítico.
+
+7. **Los wrappers de comandos Fedora → Ubuntu** demuestran la importancia del pensamiento en la experiencia del usuario (UX) en infraestructura: el alumno practica los comandos tal como los aprendió en clase (dnf, systemctl, firewall-cmd), aunque el entorno subyacente use una distribución diferente.
+
+8. **PostgreSQL 15 como motor de BD** demostró estabilidad total durante las pruebas. El healthcheck de Docker garantiza que Moodle nunca intente conectarse antes de que la BD esté lista, eliminando errores de arranque en frío.
 
 ---
 

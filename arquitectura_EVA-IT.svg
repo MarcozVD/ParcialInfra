@@ -1,150 +1,188 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="920" height="600" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif">
+<svg width="1000" height="750" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif">
   <defs>
-    <marker id="aBlue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0,10 3.5,0 7" fill="#1565c0"/>
-    </marker>
-    <marker id="aOrange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0,10 3.5,0 7" fill="#bf360c"/>
-    </marker>
-    <marker id="aGray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0,10 3.5,0 7" fill="#546e7a"/>
-    </marker>
-    <marker id="aPurple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0,10 3.5,0 7" fill="#6a1b9a"/>
-    </marker>
+    <marker id="aBlue"   markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#1565c0"/></marker>
+    <marker id="aIndigo" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#3949ab"/></marker>
+    <marker id="aOrange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#bf360c"/></marker>
+    <marker id="aGray"   markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#546e7a"/></marker>
+    <marker id="aPurple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#6a1b9a"/></marker>
+    <marker id="aGreen"  markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#2e7d32"/></marker>
   </defs>
 
   <!-- Background -->
-  <rect width="920" height="600" fill="#f5f7fa"/>
+  <rect width="1000" height="750" fill="#f5f7fa"/>
 
   <!-- ═══ TÍTULO ═══ -->
-  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="bold" fill="#0d1117">Arquitectura EVA-IT — Infraestructura Tecnológica</text>
+  <text x="500" y="26" text-anchor="middle" font-size="16" font-weight="bold" fill="#0d1117">Arquitectura EVA-IT — Infraestructura Tecnológica</text>
 
   <!-- ═══ NAVEGADOR ═══ -->
-  <rect x="310" y="36" width="300" height="54" rx="10" fill="white" stroke="#1565c0" stroke-width="2"/>
-  <text x="460" y="57" text-anchor="middle" font-size="13" font-weight="bold" fill="#1565c0">Cliente / Navegador</text>
-  <text x="460" y="76" text-anchor="middle" font-size="11" fill="#555">http://192.168.56.104</text>
+  <rect x="350" y="38" width="300" height="52" rx="10" fill="white" stroke="#1565c0" stroke-width="2"/>
+  <text x="500" y="59" text-anchor="middle" font-size="13" font-weight="bold" fill="#1565c0">Cliente / Navegador</text>
+  <text x="500" y="78" text-anchor="middle" font-size="11" fill="#555">https://192.168.56.104</text>
 
-  <!-- Flecha :80/:443 al moodle-app -->
-  <line x1="390" y1="90" x2="195" y2="172" stroke="#1565c0" stroke-width="2" marker-end="url(#aBlue)"/>
-  <rect x="248" y="112" width="90" height="18" rx="4" fill="#e3f2fd"/>
-  <text x="293" y="125" text-anchor="middle" font-size="10" font-weight="bold" fill="#1565c0">:80 / :443</text>
+  <!-- Flecha Browser → nginx-proxy :80 -->
+  <line x1="440" y1="90" x2="290" y2="158" stroke="#1565c0" stroke-width="2" marker-end="url(#aBlue)"/>
+  <rect x="312" y="108" width="80" height="17" rx="4" fill="#e3f2fd"/>
+  <text x="352" y="121" text-anchor="middle" font-size="9" font-weight="bold" fill="#1565c0">HTTP :80 → 301</text>
 
-  <!-- Flecha :7681 al moodle-terminal -->
-  <line x1="530" y1="90" x2="745" y2="172" stroke="#bf360c" stroke-width="2" marker-end="url(#aOrange)"/>
-  <rect x="582" y="112" width="58" height="18" rx="4" fill="#fff3e0"/>
-  <text x="611" y="125" text-anchor="middle" font-size="10" font-weight="bold" fill="#bf360c">:7681</text>
+  <!-- Flecha Browser → nginx-proxy :443 -->
+  <line x1="560" y1="90" x2="700" y2="158" stroke="#3949ab" stroke-width="2" marker-end="url(#aIndigo)"/>
+  <rect x="600" y="108" width="88" height="17" rx="4" fill="#e8eaf6"/>
+  <text x="644" y="121" text-anchor="middle" font-size="9" font-weight="bold" fill="#3949ab">HTTPS :443 (SSL)</text>
 
   <!-- ═══ FEDORA SERVER BOX ═══ -->
-  <rect x="12" y="105" width="896" height="453" rx="12" fill="#e8f4fd" stroke="#1565c0" stroke-width="2.5"/>
-  <rect x="12" y="105" width="896" height="30" rx="12" fill="#1565c0"/>
-  <rect x="12" y="121" width="896" height="14" fill="#1565c0"/>
-  <text x="460" y="125" text-anchor="middle" font-size="12" font-weight="bold" fill="white">🖥  Fedora Server 43 · IP: 192.168.56.104 · Oracle VirtualBox</text>
+  <rect x="12" y="105" width="976" height="575" rx="12" fill="#e8f4fd" stroke="#1565c0" stroke-width="2.5"/>
+  <rect x="12" y="105" width="976" height="30" rx="12" fill="#1565c0"/>
+  <rect x="12" y="121" width="976" height="14" fill="#1565c0"/>
+  <text x="500" y="125" text-anchor="middle" font-size="12" font-weight="bold" fill="white">Fedora Server 43  ·  IP: 192.168.56.104  ·  Oracle VirtualBox</text>
 
   <!-- ═══ DOCKER NETWORK BOX ═══ -->
-  <rect x="36" y="146" width="848" height="322" rx="8" fill="#eceff1" stroke="#546e7a" stroke-width="1.5" stroke-dasharray="7,4"/>
-  <text x="460" y="163" text-anchor="middle" font-size="11" fill="#546e7a" font-style="italic">Docker Engine · moodle-network (bridge)</text>
+  <rect x="36" y="148" width="928" height="410" rx="8" fill="#eceff1" stroke="#546e7a" stroke-width="1.5" stroke-dasharray="7,4"/>
+  <text x="500" y="165" text-anchor="middle" font-size="11" fill="#546e7a" font-style="italic">Docker Engine  ·  moodle-network (bridge)</text>
 
-  <!-- ══════════════════════════════════════════════════ -->
-  <!--  CONTENEDOR 1: moodle-app                         -->
-  <!-- ══════════════════════════════════════════════════ -->
-  <rect x="56" y="170" width="240" height="205" rx="8" fill="white" stroke="#1a73e8" stroke-width="2"/>
-  <rect x="56" y="170" width="240" height="28" rx="8" fill="#1a73e8"/>
-  <rect x="56" y="185" width="240" height="13" fill="#1a73e8"/>
-  <text x="176" y="189" text-anchor="middle" font-size="12" font-weight="bold" fill="white">moodle-app</text>
-  <text x="176" y="220" text-anchor="middle" font-size="11" fill="#222">Moodle 5.1.4</text>
-  <text x="176" y="238" text-anchor="middle" font-size="11" fill="#222">PHP 8.2-FPM</text>
-  <text x="176" y="256" text-anchor="middle" font-size="11" fill="#222">Apache HTTP 2.4</text>
-  <rect x="76" y="267" width="200" height="20" rx="4" fill="#e3f2fd" stroke="#1a73e8" stroke-width="1"/>
-  <text x="176" y="281" text-anchor="middle" font-size="10" font-weight="bold" fill="#1565c0">Puertos: 80:80 · 443:443</text>
-  <rect x="76" y="294" width="200" height="20" rx="4" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1"/>
-  <text x="176" y="308" text-anchor="middle" font-size="10" fill="#6a1b9a" font-weight="bold">Vol → moodledata</text>
-  <rect x="76" y="321" width="200" height="20" rx="4" fill="#e8f5e9" stroke="#388e3c" stroke-width="1"/>
-  <text x="176" y="335" text-anchor="middle" font-size="10" fill="#2e7d32">restart: unless-stopped</text>
-  <rect x="76" y="348" width="200" height="20" rx="4" fill="#fffde7" stroke="#f9a825" stroke-width="1"/>
-  <text x="176" y="362" text-anchor="middle" font-size="10" fill="#f57f17">depends_on: moodle-db ✓</text>
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--  nginx-proxy  (gateway — barra ancha)                    -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <rect x="56" y="172" width="888" height="88" rx="8" fill="white" stroke="#3949ab" stroke-width="2"/>
+  <rect x="56" y="172" width="888" height="26" rx="8" fill="#3949ab"/>
+  <rect x="56" y="186" width="888" height="12" fill="#3949ab"/>
+  <text x="500" y="191" text-anchor="middle" font-size="12" font-weight="bold" fill="white">nginx-proxy  (moodle-proxy)</text>
 
-  <!-- ══════════════════════════════════════════════════ -->
-  <!--  CONTENEDOR 2: moodle-db                          -->
-  <!-- ══════════════════════════════════════════════════ -->
-  <rect x="340" y="170" width="240" height="205" rx="8" fill="white" stroke="#2e7d32" stroke-width="2"/>
-  <rect x="340" y="170" width="240" height="28" rx="8" fill="#2e7d32"/>
-  <rect x="340" y="185" width="240" height="13" fill="#2e7d32"/>
-  <text x="460" y="189" text-anchor="middle" font-size="12" font-weight="bold" fill="white">moodle-db</text>
-  <text x="460" y="220" text-anchor="middle" font-size="11" fill="#222">PostgreSQL 15</text>
-  <text x="460" y="238" text-anchor="middle" font-size="11" fill="#222">Healthcheck pg_isready</text>
-  <text x="460" y="256" text-anchor="middle" font-size="11" fill="#222">Solo red interna Docker</text>
-  <rect x="360" y="267" width="200" height="20" rx="4" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1"/>
-  <text x="460" y="281" text-anchor="middle" font-size="10" font-weight="bold" fill="#1b5e20">Puerto: 5432 (solo interno)</text>
-  <rect x="360" y="294" width="200" height="20" rx="4" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1"/>
-  <text x="460" y="308" text-anchor="middle" font-size="10" fill="#6a1b9a" font-weight="bold">Vol → postgresql_data</text>
-  <rect x="360" y="321" width="200" height="20" rx="4" fill="#e8f5e9" stroke="#388e3c" stroke-width="1"/>
-  <text x="460" y="335" text-anchor="middle" font-size="10" fill="#2e7d32">restart: unless-stopped</text>
-  <rect x="360" y="348" width="200" height="20" rx="4" fill="#e3f2fd" stroke="#1565c0" stroke-width="1"/>
-  <text x="460" y="362" text-anchor="middle" font-size="10" fill="#1565c0">interval: 10s · retries: 10</text>
+  <!-- nginx details: 3 info blocks -->
+  <text x="160" y="216" text-anchor="middle" font-size="11" fill="#222">nginx:alpine  1.31</text>
+  <text x="160" y="233" text-anchor="middle" font-size="10" fill="#333">Puertos: 80:80 · 443:443</text>
 
-  <!-- ══════════════════════════════════════════════════ -->
-  <!--  CONTENEDOR 3: moodle-terminal                    -->
-  <!-- ══════════════════════════════════════════════════ -->
-  <rect x="624" y="170" width="240" height="205" rx="8" fill="white" stroke="#bf360c" stroke-width="2"/>
-  <rect x="624" y="170" width="240" height="28" rx="8" fill="#bf360c"/>
-  <rect x="624" y="185" width="240" height="13" fill="#bf360c"/>
-  <text x="744" y="189" text-anchor="middle" font-size="12" font-weight="bold" fill="white">moodle-terminal</text>
-  <text x="744" y="220" text-anchor="middle" font-size="11" fill="#222">ttyd 1.7.7</text>
-  <text x="744" y="238" text-anchor="middle" font-size="11" fill="#222">Ubuntu 22.04 LTS</text>
-  <text x="744" y="256" text-anchor="middle" font-size="11" fill="#222">Bash + CLI tools (5 unidades)</text>
-  <rect x="644" y="267" width="200" height="20" rx="4" fill="#fff3e0" stroke="#bf360c" stroke-width="1"/>
-  <text x="744" y="281" text-anchor="middle" font-size="10" font-weight="bold" fill="#bf360c">Puerto: 7681:7681</text>
-  <rect x="644" y="294" width="200" height="20" rx="4" fill="#fce4ec" stroke="#c62828" stroke-width="1"/>
-  <text x="744" y="308" text-anchor="middle" font-size="10" fill="#b71c1c" font-weight="bold">Bind: /var/run/docker.sock</text>
-  <rect x="644" y="321" width="200" height="20" rx="4" fill="#fce4ec" stroke="#c62828" stroke-width="1"/>
-  <text x="744" y="335" text-anchor="middle" font-size="10" fill="#b71c1c">restart: always (sesión efímera)</text>
-  <rect x="644" y="348" width="200" height="20" rx="4" fill="#ede7f6" stroke="#512da8" stroke-width="1"/>
-  <text x="744" y="362" text-anchor="middle" font-size="10" fill="#4527a0">ttyd --once → reset al cerrar</text>
+  <text x="500" y="210" text-anchor="middle" font-size="10" fill="#333">HTTP → 301 → HTTPS</text>
+  <rect x="380" y="215" width="240" height="16" rx="3" fill="#e8eaf6" stroke="#3949ab" stroke-width="1"/>
+  <text x="500" y="227" text-anchor="middle" font-size="9" font-weight="bold" fill="#3949ab">location /  →  http://moodle:80</text>
+  <rect x="380" y="234" width="240" height="16" rx="3" fill="#fff3e0" stroke="#bf360c" stroke-width="1"/>
+  <text x="500" y="246" text-anchor="middle" font-size="9" font-weight="bold" fill="#bf360c">location /terminal/  →  http://moodle-terminal:7681</text>
 
-  <!-- Flecha SQL entre app y db -->
-  <line x1="296" y1="278" x2="340" y2="278" stroke="#546e7a" stroke-width="2" marker-end="url(#aGray)"/>
-  <line x1="340" y1="290" x2="296" y2="290" stroke="#546e7a" stroke-width="2" marker-end="url(#aGray)"/>
-  <text x="318" y="273" text-anchor="middle" font-size="9" fill="#546e7a" font-weight="bold">SQL</text>
+  <text x="840" y="216" text-anchor="middle" font-size="11" fill="#222">SSL: TLS 1.2/1.3</text>
+  <text x="840" y="233" text-anchor="middle" font-size="10" fill="#333">Cert: auto-firmado (OpenSSL)</text>
+
+  <!-- Flecha nginx → moodle-app -->
+  <line x1="200" y1="260" x2="200" y2="278" stroke="#1565c0" stroke-width="2" marker-end="url(#aBlue)"/>
+  <!-- Flecha nginx → moodle-db (no direct, only via app) -->
+  <!-- Flecha nginx → moodle-terminal -->
+  <line x1="800" y1="260" x2="800" y2="278" stroke="#bf360c" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#aOrange)"/>
+  <!-- proxy_pass center -->
+  <line x1="500" y1="260" x2="200" y2="278" stroke="#1565c0" stroke-width="1.5" marker-end="url(#aBlue)" stroke-dasharray="3,2"/>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--  moodle-app                                               -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <rect x="56" y="278" width="288" height="230" rx="8" fill="white" stroke="#1a73e8" stroke-width="2"/>
+  <rect x="56" y="278" width="288" height="26" rx="8" fill="#1a73e8"/>
+  <rect x="56" y="292" width="288" height="12" fill="#1a73e8"/>
+  <text x="200" y="298" text-anchor="middle" font-size="12" font-weight="bold" fill="white">moodle-app</text>
+  <text x="200" y="326" text-anchor="middle" font-size="11" fill="#222">Moodle 5.1.4</text>
+  <text x="200" y="344" text-anchor="middle" font-size="11" fill="#222">PHP 8.2  ·  Apache 2.4</text>
+  <text x="200" y="362" text-anchor="middle" font-size="10" fill="#555">DocRoot: /var/www/html/public</text>
+  <rect x="72" y="369" width="256" height="17" rx="3" fill="#e3f2fd" stroke="#1a73e8" stroke-width="1"/>
+  <text x="200" y="381" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#1565c0">Solo red interna (sin puerto host)</text>
+  <rect x="72" y="390" width="256" height="17" rx="3" fill="#e8f5e9" stroke="#388e3c" stroke-width="1"/>
+  <text x="200" y="402" text-anchor="middle" font-size="9.5" fill="#2e7d32">5 quizzes · completion tracking</text>
+  <rect x="72" y="411" width="256" height="17" rx="3" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1"/>
+  <text x="200" y="423" text-anchor="middle" font-size="9.5" fill="#6a1b9a" font-weight="bold">Vol → moodledata</text>
+  <rect x="72" y="432" width="256" height="17" rx="3" fill="#e8f5e9" stroke="#388e3c" stroke-width="1"/>
+  <text x="200" y="444" text-anchor="middle" font-size="9.5" fill="#2e7d32">restart: unless-stopped</text>
+  <rect x="72" y="453" width="256" height="17" rx="3" fill="#fffde7" stroke="#f9a825" stroke-width="1"/>
+  <text x="200" y="465" text-anchor="middle" font-size="9.5" fill="#f57f17">depends_on: moodle-db ✓</text>
+  <rect x="72" y="474" width="256" height="17" rx="3" fill="#e8eaf6" stroke="#3949ab" stroke-width="1"/>
+  <text x="200" y="486" text-anchor="middle" font-size="9.5" fill="#3949ab">sslproxy = true (detrás de Nginx)</text>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--  moodle-db                                                -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <rect x="356" y="278" width="288" height="230" rx="8" fill="white" stroke="#2e7d32" stroke-width="2"/>
+  <rect x="356" y="278" width="288" height="26" rx="8" fill="#2e7d32"/>
+  <rect x="356" y="292" width="288" height="12" fill="#2e7d32"/>
+  <text x="500" y="298" text-anchor="middle" font-size="12" font-weight="bold" fill="white">moodle-db</text>
+  <text x="500" y="326" text-anchor="middle" font-size="11" fill="#222">PostgreSQL 15</text>
+  <text x="500" y="344" text-anchor="middle" font-size="11" fill="#222">Healthcheck: pg_isready</text>
+  <text x="500" y="362" text-anchor="middle" font-size="10" fill="#555">Solo red interna Docker</text>
+  <rect x="372" y="369" width="256" height="17" rx="3" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1"/>
+  <text x="500" y="381" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#1b5e20">Puerto: 5432 (solo interno)</text>
+  <rect x="372" y="390" width="256" height="17" rx="3" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1"/>
+  <text x="500" y="402" text-anchor="middle" font-size="9.5" fill="#6a1b9a" font-weight="bold">Vol → postgresql_data</text>
+  <rect x="372" y="411" width="256" height="17" rx="3" fill="#e8f5e9" stroke="#388e3c" stroke-width="1"/>
+  <text x="500" y="423" text-anchor="middle" font-size="9.5" fill="#2e7d32">restart: unless-stopped</text>
+  <rect x="372" y="432" width="256" height="17" rx="3" fill="#e3f2fd" stroke="#1565c0" stroke-width="1"/>
+  <text x="500" y="444" text-anchor="middle" font-size="9.5" fill="#1565c0">interval: 10s  ·  retries: 10</text>
+  <rect x="372" y="453" width="256" height="17" rx="3" fill="#fffde7" stroke="#f9a825" stroke-width="1"/>
+  <text x="500" y="465" text-anchor="middle" font-size="9.5" fill="#f57f17">DB: moodle_db · User: moodle_user</text>
+
+  <!-- SQL arrows (app ↔ db) -->
+  <line x1="344" y1="385" x2="356" y2="385" stroke="#546e7a" stroke-width="2" marker-end="url(#aGray)"/>
+  <line x1="356" y1="398" x2="344" y2="398" stroke="#546e7a" stroke-width="2" marker-end="url(#aGray)"/>
+  <text x="350" y="380" text-anchor="middle" font-size="8" fill="#546e7a" font-weight="bold">SQL</text>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--  moodle-terminal                                          -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <rect x="656" y="278" width="288" height="230" rx="8" fill="white" stroke="#bf360c" stroke-width="2"/>
+  <rect x="656" y="278" width="288" height="26" rx="8" fill="#bf360c"/>
+  <rect x="656" y="292" width="288" height="12" fill="#bf360c"/>
+  <text x="800" y="298" text-anchor="middle" font-size="12" font-weight="bold" fill="white">moodle-terminal</text>
+  <text x="800" y="326" text-anchor="middle" font-size="11" fill="#222">ttyd 1.7.7</text>
+  <text x="800" y="344" text-anchor="middle" font-size="11" fill="#222">Ubuntu 22.04 LTS</text>
+  <text x="800" y="362" text-anchor="middle" font-size="10" fill="#555">Bash + CLI tools (5 unidades)</text>
+  <rect x="672" y="369" width="256" height="17" rx="3" fill="#fff3e0" stroke="#bf360c" stroke-width="1"/>
+  <text x="800" y="381" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#bf360c">Puerto: 7681:7681 (directo)</text>
+  <rect x="672" y="390" width="256" height="17" rx="3" fill="#fce4ec" stroke="#c62828" stroke-width="1"/>
+  <text x="800" y="402" text-anchor="middle" font-size="9.5" fill="#b71c1c" font-weight="bold">Bind: /var/run/docker.sock</text>
+  <rect x="672" y="411" width="256" height="17" rx="3" fill="#fce4ec" stroke="#c62828" stroke-width="1"/>
+  <text x="800" y="423" text-anchor="middle" font-size="9.5" fill="#b71c1c">restart: always (sesión efímera)</text>
+  <rect x="672" y="432" width="256" height="17" rx="3" fill="#ede7f6" stroke="#512da8" stroke-width="1"/>
+  <text x="800" y="444" text-anchor="middle" font-size="9.5" fill="#4527a0">ttyd --once → reset al cerrar</text>
+  <rect x="672" y="453" width="256" height="17" rx="3" fill="#e8eaf6" stroke="#3949ab" stroke-width="1"/>
+  <text x="800" y="465" text-anchor="middle" font-size="9.5" fill="#3949ab">Acceso: /terminal/ (via Nginx)</text>
 
   <!-- ═══ VOLÚMENES ═══ -->
-  <text x="460" y="402" text-anchor="middle" font-size="10" fill="#546e7a" font-style="italic">Volúmenes Docker (persistentes en el host)</text>
+  <text x="500" y="528" text-anchor="middle" font-size="10" fill="#546e7a" font-style="italic">Volúmenes Docker (persistentes en el host)</text>
 
   <!-- Vol moodledata -->
-  <line x1="176" y1="375" x2="176" y2="415" stroke="#7b1fa2" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#aPurple)"/>
-  <rect x="76" y="415" width="200" height="42" rx="6" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
-  <text x="176" y="432" text-anchor="middle" font-size="11" font-weight="bold" fill="#6a1b9a">moodledata</text>
-  <text x="176" y="448" text-anchor="middle" font-size="9" fill="#6a1b9a">/var/moodledata (archivos Moodle)</text>
+  <line x1="200" y1="508" x2="200" y2="536" stroke="#7b1fa2" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#aPurple)"/>
+  <rect x="76" y="536" width="248" height="32" rx="5" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
+  <text x="200" y="550" text-anchor="middle" font-size="11" font-weight="bold" fill="#6a1b9a">moodledata</text>
+  <text x="200" y="563" text-anchor="middle" font-size="9" fill="#6a1b9a">/var/moodledata (archivos Moodle)</text>
 
   <!-- Vol postgresql_data -->
-  <line x1="460" y1="375" x2="460" y2="415" stroke="#7b1fa2" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#aPurple)"/>
-  <rect x="360" y="415" width="200" height="42" rx="6" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
-  <text x="460" y="432" text-anchor="middle" font-size="11" font-weight="bold" fill="#6a1b9a">postgresql_data</text>
-  <text x="460" y="448" text-anchor="middle" font-size="9" fill="#6a1b9a">/var/lib/postgresql/data</text>
+  <line x1="500" y1="508" x2="500" y2="536" stroke="#7b1fa2" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#aPurple)"/>
+  <rect x="376" y="536" width="248" height="32" rx="5" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
+  <text x="500" y="550" text-anchor="middle" font-size="11" font-weight="bold" fill="#6a1b9a">postgresql_data</text>
+  <text x="500" y="563" text-anchor="middle" font-size="9" fill="#6a1b9a">/var/lib/postgresql/data</text>
 
   <!-- Docker socket -->
-  <line x1="744" y1="375" x2="744" y2="415" stroke="#c62828" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#aOrange)"/>
-  <rect x="644" y="415" width="200" height="42" rx="6" fill="#fce4ec" stroke="#c62828" stroke-width="1.5"/>
-  <text x="744" y="432" text-anchor="middle" font-size="11" font-weight="bold" fill="#b71c1c">docker.sock (host)</text>
-  <text x="744" y="448" text-anchor="middle" font-size="9" fill="#b71c1c">/var/run/docker.sock (bind mount)</text>
+  <line x1="800" y1="508" x2="800" y2="536" stroke="#c62828" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#aOrange)"/>
+  <rect x="676" y="536" width="248" height="32" rx="5" fill="#fce4ec" stroke="#c62828" stroke-width="1.5"/>
+  <text x="800" y="550" text-anchor="middle" font-size="11" font-weight="bold" fill="#b71c1c">docker.sock (host)</text>
+  <text x="800" y="563" text-anchor="middle" font-size="9" fill="#b71c1c">/var/run/docker.sock (bind mount)</text>
+
+  <!-- ═══ HEALTHCHECK CRON (nivel host) ═══ -->
+  <rect x="36" y="585" width="928" height="50" rx="6" fill="#fff8e1" stroke="#e65100" stroke-width="1.5"/>
+  <text x="48" y="603" font-size="11" font-weight="bold" fill="#e65100">⏱  healthcheck.sh  (cron del host: */5 * * * *)</text>
+  <text x="48" y="621" font-size="10" fill="#555">Verifica moodle-app · moodle-db · moodle-terminal  ·  Auto-reinicia si caído  ·  Rota log (máx 500 líneas)  ·  /var/log/eva_healthcheck.log</text>
 
   <!-- ═══ LEYENDA ═══ -->
-  <rect x="36" y="473" width="848" height="52" rx="6" fill="white" stroke="#cfd8dc" stroke-width="1"/>
-  <text x="460" y="489" text-anchor="middle" font-size="10" font-weight="bold" fill="#333">Leyenda</text>
-  <rect x="60"  y="496" width="12" height="12" fill="#1a73e8" rx="2"/>
-  <text x="78"  y="507" font-size="10" fill="#333">Aplicación LMS</text>
-  <rect x="185" y="496" width="12" height="12" fill="#2e7d32" rx="2"/>
-  <text x="203" y="507" font-size="10" fill="#333">Base de datos</text>
-  <rect x="305" y="496" width="12" height="12" fill="#bf360c" rx="2"/>
-  <text x="323" y="507" font-size="10" fill="#333">Terminal web</text>
-  <rect x="425" y="496" width="12" height="12" fill="#7b1fa2" rx="2"/>
-  <text x="443" y="507" font-size="10" fill="#333">Volúmenes Docker</text>
-  <line x1="560" y1="502" x2="592" y2="502" stroke="#546e7a" stroke-width="2" stroke-dasharray="5,3"/>
-  <text x="598" y="507" font-size="10" fill="#333">Red interna Docker</text>
-  <line x1="720" y1="502" x2="745" y2="502" stroke="#333" stroke-width="1.5" marker-end="url(#aGray)"/>
-  <text x="751" y="507" font-size="10" fill="#333">Conexión / flujo</text>
+  <rect x="36" y="645" width="928" height="50" rx="6" fill="white" stroke="#cfd8dc" stroke-width="1"/>
+  <text x="500" y="661" text-anchor="middle" font-size="10" font-weight="bold" fill="#333">Leyenda</text>
+  <rect x="56"  y="668" width="12" height="12" fill="#3949ab" rx="2"/>
+  <text x="74"  y="679" font-size="10" fill="#333">Nginx proxy / SSL</text>
+  <rect x="180" y="668" width="12" height="12" fill="#1a73e8" rx="2"/>
+  <text x="198" y="679" font-size="10" fill="#333">Aplicación LMS</text>
+  <rect x="292" y="668" width="12" height="12" fill="#2e7d32" rx="2"/>
+  <text x="310" y="679" font-size="10" fill="#333">Base de datos</text>
+  <rect x="400" y="668" width="12" height="12" fill="#bf360c" rx="2"/>
+  <text x="418" y="679" font-size="10" fill="#333">Terminal web</text>
+  <rect x="504" y="668" width="12" height="12" fill="#7b1fa2" rx="2"/>
+  <text x="522" y="679" font-size="10" fill="#333">Volúmenes Docker</text>
+  <rect x="632" y="668" width="12" height="12" fill="#fff8e1" stroke="#e65100" stroke-width="1" rx="2"/>
+  <text x="650" y="679" font-size="10" fill="#333">Healthcheck cron</text>
+  <line x1="760" y1="674" x2="792" y2="674" stroke="#546e7a" stroke-width="2" stroke-dasharray="5,3"/>
+  <text x="798" y="679" font-size="10" fill="#333">Red interna Docker</text>
 
-  <!-- ═══ GITHUB LABEL ═══ -->
-  <text x="460" y="578" text-anchor="middle" font-size="10" fill="#546e7a">github.com/MarcozVD/ParcialInfra · Mayo 2026</text>
+  <!-- ═══ FOOTER ═══ -->
+  <text x="500" y="730" text-anchor="middle" font-size="10" fill="#546e7a">github.com/MarcozVD/ParcialInfra  ·  Mayo 2026</text>
 </svg>
