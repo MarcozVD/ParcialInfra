@@ -121,29 +121,14 @@ RUN printf '%s\n' \
     > /usr/local/bin/hostnamectl \
     && chmod +x /usr/local/bin/hostnamectl
 
-# ── Wrapper: dnf  →  apt ─────────────────────────────────────────────────
-RUN printf '%s\n' \
-    '#!/bin/bash' \
-    'echo "[dnf→apt] Este contenedor usa Ubuntu/apt. Traduciendo comando dnf a apt..."' \
-    'echo ""' \
-    'shift' \
-    'sudo apt-get "$@"' \
-    > /usr/local/bin/dnf \
-    && chmod +x /usr/local/bin/dnf
-
-# ── Usuario sandbox con sudo sin contraseña ───────────────────────────────
-RUN useradd -m -s /bin/bash alumno \
-    && echo "alumno:Infra2024" | chpasswd \
-    && echo "alumno ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/alumno \
-    && chmod 440 /etc/sudoers.d/alumno
+# ── Wrapper: dnf  →  apt (con traduccion de nombres de paquetes) ──────────
+COPY dnf_wrapper.sh /usr/local/bin/dnf
+RUN chmod +x /usr/local/bin/dnf
 
 # ── Bashrc con cheat-sheet por unidad ────────────────────────────────────
-COPY terminal_bashrc.sh /tmp/terminal_bashrc.sh
-RUN cat /tmp/terminal_bashrc.sh >> /home/alumno/.bashrc \
-    && chown alumno:alumno /home/alumno/.bashrc
+COPY terminal_bashrc.sh /root/.bashrc
 
 EXPOSE 7681
-USER alumno
-WORKDIR /home/alumno
 
-CMD ["ttyd", "-p", "7681", "-W", "bash"]
+# Sesion efimera: --once hace que el contenedor se reinicie (y resetee) al cerrar el navegador
+CMD ["ttyd", "-p", "7681", "-W", "--once", "bash"]
