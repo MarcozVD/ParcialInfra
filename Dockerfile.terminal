@@ -1,68 +1,46 @@
 FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND=noninteractive
 
+# Unidad 1: herramientas de sistema y red
+# Unidad 2: Apache, Nginx, OpenSSL
+# Unidad 3: clientes PostgreSQL y MySQL
+# Unidad 5: iptables, ufw, ssh-keygen
 RUN apt-get update && apt-get install -y \
-    curl wget vim nano htop net-tools iputils-ping \
-    postgresql-client openssh-client \
-    bash-completion tree jq unzip \
+    vim nano htop procps iproute2 net-tools iputils-ping \
+    bash-completion tree lsof curl wget rsync \
+    apache2 nginx openssl \
+    postgresql-client default-mysql-client \
+    iptables ufw openssh-client \
+    sudo ca-certificates gnupg \
     && rm -rf /var/lib/apt/lists/*
 
-# Install ttyd
-RUN curl -L https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64 \
-    -o /usr/local/bin/ttyd \
-    && chmod +x /usr/local/bin/ttyd
+# Unidad 4: Docker CLI (usa el socket del host montado via compose)
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+        | gpg --dearmor -o /usr/share/keyrings/docker.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker.gpg] \
+        https://download.docker.com/linux/ubuntu jammy stable" \
+        > /etc/apt/sources.list.d/docker.list \
+    && apt-get update && apt-get install -y docker-ce-cli \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create sandbox user (non-root)
+# ttyd
+RUN curl -fsSL \
+    https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64 \
+    -o /usr/local/bin/ttyd && chmod +x /usr/local/bin/ttyd
+
+# Usuario sandbox con sudo sin contraseña
 RUN useradd -m -s /bin/bash alumno \
-    && echo "alumno:Infra2024" | chpasswd
+    && echo "alumno:Infra2024" | chpasswd \
+    && echo "alumno ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/alumno \
+    && chmod 440 /etc/sudoers.d/alumno
 
-# Welcome message
-RUN echo '\n\
-echo ""\n\
-echo "  ╔══════════════════════════════════════════════════╗"\n\
-echo "  ║  Terminal de Practica - Infraestructura EVA      ║"\n\
-echo "  ║  Curso: Infraestructura Tecnologica              ║"\n\
-echo "  ║  Usuario: alumno  |  Escribe '"'"'help-infra'"'"' para tips ║"\n\
-echo "  ╚══════════════════════════════════════════════════╝"\n\
-echo ""\n\
-' >> /home/alumno/.bashrc
-
-# Helpful alias cheat-sheet command
-RUN echo '\
-help-infra() {\n\
-  echo ""\n\
-  echo "=== Comandos utiles para practicar ==="\n\
-  echo ""\n\
-  echo "[ Sistema ]"\n\
-  echo "  uname -a          ver version del SO"\n\
-  echo "  df -h             espacio en disco"\n\
-  echo "  free -h           memoria RAM"\n\
-  echo "  ps aux            procesos activos"\n\
-  echo "  top               monitor en tiempo real"\n\
-  echo ""\n\
-  echo "[ Red ]"\n\
-  echo "  ip addr show      ver interfaces de red"\n\
-  echo "  ping -c3 8.8.8.8  prueba de conectividad"\n\
-  echo "  curl -I http://moodle-app  cabeceras HTTP de Moodle"\n\
-  echo ""\n\
-  echo "[ Base de datos (PostgreSQL) ]"\n\
-  echo "  psql -h moodle-db -U moodle_user -d moodle_db"\n\
-  echo "  (contrasena: Moodle@Secure2024)"\n\
-  echo ""\n\
-  echo "[ Archivos ]"\n\
-  echo "  ls -la            listar con detalles"\n\
-  echo "  cat archivo       ver contenido"\n\
-  echo "  grep texto arch   buscar texto"\n\
-  echo "  find / -name *.conf  buscar archivos"\n\
-  echo ""\n\
-}\n\
-export -f help-infra\n\
-' >> /home/alumno/.bashrc
-
-RUN chown alumno:alumno /home/alumno/.bashrc
+# Bashrc con cheat-sheet por unidad
+COPY terminal_bashrc.sh /tmp/terminal_bashrc.sh
+RUN cat /tmp/terminal_bashrc.sh >> /home/alumno/.bashrc \
+    && chown alumno:alumno /home/alumno/.bashrc
 
 EXPOSE 7681
-
 USER alumno
 WORKDIR /home/alumno
 
-CMD ["ttyd", "-p", "7681", "-t", "fontSize=15", "-t", "theme={\"background\":\"#1e1e1e\",\"foreground\":\"#d4d4d4\"}", "bash"]
+CMD ["ttyd", "-p", "7681", "-W", "bash"]

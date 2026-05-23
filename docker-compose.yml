@@ -49,8 +49,11 @@ services:
       context: .
       dockerfile: Dockerfile.terminal
     container_name: moodle-terminal
+    command: ["ttyd", "-p", "7681", "-W", "bash"]
     ports:
       - "7681:7681"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - moodle-network
     restart: unless-stopped
