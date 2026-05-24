@@ -968,7 +968,88 @@ docker exec moodle-app php /var/www/html/public/admin/cli/upgrade.php --non-inte
 
 ---
 
-## 15. REFERENCIAS
+## 15. USO DE INTELIGENCIA ARTIFICIAL EN EL PROYECTO
+
+### 15.1 Herramientas de IA utilizadas
+
+**Claude (Anthropic) — modelo claude-sonnet-4-6**, accedido mediante Claude Code (CLI). Se utilizó de forma interactiva durante todo el desarrollo del proyecto para asistencia técnica en tiempo real directamente desde la terminal del equipo de desarrollo.
+
+---
+
+### 15.2 Propósito del uso de la IA
+
+- Diagnóstico y corrección de errores de compatibilidad entre scripts PHP y el esquema de base de datos de Moodle 5.x (tablas `quiz_slots`, `question_bank_entries`, `question_versions`, `question_references`).
+- Generación y refactorización de scripts de instalación automatizada (`add_quizzes.php`, `enable_completion.php`).
+- Resolución de errores de despliegue Docker (DocumentRoot incorrecto, bucle HTTP↔HTTPS por ausencia de `sslproxy`).
+- Redacción y actualización de documentación técnica (README, Informe Técnico, diagrama SVG de arquitectura).
+
+---
+
+### 15.3 Prompts principales utilizados
+
+A continuación se presentan ejemplos representativos de las consultas realizadas a la IA durante el desarrollo:
+
+> *"El script add_quizzes.php falla con 'column questionid does not exist' en quiz_slots. Reescríbelo para Moodle 5.x."*
+
+> *"Not Found — The requested URL was not found on this server. Apache/2.4.67 (Debian) Server at 192.168.56.104 Port 80. ¿Por qué no carga Moodle?"*
+
+> *"Actualiza los documentos y el README con lo nuevo añadido y crea nuevamente la arquitectura en SVG con lo añadido."*
+
+---
+
+### 15.4 Respuestas o resultados relevantes obtenidos
+
+- Identificación de que Moodle 5.x eliminó la columna `questionid` de `quiz_slots` y migró a una arquitectura de banco de preguntas con tres tablas intermedias (`question_bank_entries`, `question_versions`, `question_references`).
+- Diagnóstico del error "Not Found": `DocumentRoot` apuntaba a `/var/www/html` en lugar de `/var/www/html/public`, requerido por Moodle 5.1.4.
+- Identificación de la causa del bucle de redirección: falta de `$CFG->sslproxy = true` en `config.php` cuando Nginx termina SSL.
+- Scripts PHP funcionales ejecutados exitosamente en el servidor: 5 quizzes creados con 5 preguntas cada uno y 35 actividades con completion tracking activado.
+- Documentación técnica actualizada a versión 2.0 con diagramas, tablas de funcionalidades y notas técnicas detalladas.
+
+---
+
+### 15.5 Validación técnica realizada por el equipo
+
+Cada resultado generado por la IA fue validado antes de considerarse aceptado:
+
+- Los scripts PHP se ejecutaron directamente en el contenedor (`docker exec moodle-app php /tmp/script.php`) y se verificó la salida en consola.
+- Se comprobó el acceso a Moodle vía navegador en `https://192.168.56.104` luego de cada corrección aplicada.
+- Se verificó la creación de quizzes y activación de completion tracking ingresando a la plataforma con las credenciales de estudiante y docente.
+- Los errores intermedios (constraint UNIQUE en `question_categories`, sección por ID vs. número) fueron detectados durante la ejecución real en el servidor, lo que demuestra que la validación humana fue indispensable.
+
+---
+
+### 15.6 Ajustes o correcciones aplicadas
+
+La IA no produjo soluciones perfectas en el primer intento. Se requirieron varias iteraciones de prueba y corrección:
+
+| Error encontrado en ejecución real | Corrección aplicada |
+|---|---|
+| `UNIQUE constraint (contextid, stamp)` en `question_categories` | Agregar `$cat->stamp = make_unique_id_code()` |
+| Búsqueda de sección por número en lugar de ID primario | Cambiar query de `['section' => x]` a `['id' => x]` |
+| `column completiongradeitems does not exist` (Moodle 5.x) | Renombrar campo a `completionpassgrade` |
+| `require_once` apuntando a librería inexistente (tcpdf) | Corregir a `$CFG->dirroot . '/course/lib.php'` |
+| `DocumentRoot` incorrecto en Apache | Actualizar a `/var/www/html/public` vía `docker exec` |
+| Bucle de redirección HTTP↔HTTPS | Agregar `$CFG->sslproxy = true` en `config.php` |
+
+---
+
+### 15.7 Reflexión ética sobre el uso de IA en el proyecto
+
+El uso de IA en este proyecto fue **instrumental y supervisado**: la IA actuó como asistente técnico, no como responsable del proyecto. Todas las decisiones de arquitectura, la validación en entorno real y la comprensión de los resultados recayeron en el equipo.
+
+Se identifican los siguientes puntos éticos a considerar:
+
+**Verificación obligatoria.** El código generado por IA se probó en el servidor real antes de aceptarlo. Confiar ciegamente en el output habría introducido errores en producción, como ocurrió en varias ocasiones con el esquema de Moodle 5.x que la IA desconocía inicialmente.
+
+**Transparencia.** Se documenta explícitamente el uso de IA en este informe, en lugar de presentar el trabajo como enteramente propio sin asistencia externa. La honestidad académica exige declarar las herramientas utilizadas.
+
+**Limitaciones reconocidas.** La IA desconocía los cambios de esquema de Moodle 5.x (eliminación de `questionid`, renombre de columnas). Esto refleja que los modelos de lenguaje pueden tener conocimiento desactualizado sobre versiones recientes de software, y que el juicio técnico del equipo fue necesario para detectar y corregir estas deficiencias.
+
+**Aprendizaje activo.** El equipo buscó entender cada corrección propuesta, no solo aplicarla mecánicamente. Esto aseguró comprensión real del sistema desplegado y capacidad para mantenerlo sin dependencia de la herramienta.
+
+---
+
+## 16. REFERENCIAS
 
 1. **Moodle Documentation** — Installation Guide v5.1  
    https://docs.moodle.org/405/en/Installation_quick_guide
