@@ -7,3 +7,8 @@ Primera
 # Ambientes y secretos
 .env
 *.env
+
+# Certificados SSL (generados localmente, no subir al repo)
+nginx/certs/server.crt
+nginx/certs/server.key
+nginx/certs/*.pem
